@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Balanza Algebraica Interactiva</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+  body { background: #f0f4f8; padding: 16px; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 6px; color: #0f172a; font-size: 1.6rem; }
+  .header-row h1 { margin-bottom: 0; }
+  .subtitle { text-align: center; margin-bottom: 16px; color: #64748b; font-size: 0.95rem; }
+
+  .container { max-width: 1100px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 24px; }
+
+  /* Layout: pasos a la izquierda */
+  .main-layout {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+  }
+  .steps-column {
+    width: 280px;
+    min-width: 240px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .work-column {
+    flex: 1;
+    min-width: 0;
+  }
+  @media (max-width: 800px) {
+    .main-layout { flex-direction: column; }
+    .steps-column { width: 100%; }
+  }
+
+  .top-bar {
+    display: flex; gap: 10px; justify-content: center; align-items: center;
+    margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .top-bar input[type="text"] {
+    padding: 10px 14px; border: 2px solid #cbd5e1; border-radius: 10px;
+    font-size: 16px; width: 240px; text-align: center;
+  }
+  .equation-input { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; flex-wrap: wrap; }
+  input[type="text"] { padding: 10px 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; width: 240px; text-align: center; }
+  button { padding: 10px 16px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .btn-load { background: #3b82f6; color: white; }
+  .btn-reset { background: #64748b; color: white; }
+  .btn-add { background: #10b981; color: white; }
+  .btn-sub { background: #ef4444; color: white; }
+  .btn-mul { background: #ec4899; color: white; }
+  .btn-div { background: #f59e0b; color: white; }
+  .btn-mode { background: #0ea5e9; color: white; }
+  .btn-set {
+    background: #e2e8f0; color: #1e293b; padding: 8px 12px;
+    border: 2px solid #cbd5e1; border-radius: 10px;
+    font-size: 17px; font-weight: 800; cursor: pointer;
+    transition: all 0.2s; min-width: 42px; line-height: 1;
+  }
+  .btn-set.active-N { background: #10b981; color: white; border-color: #059669; }
+  .btn-set.active-Z { background: #3b82f6; color: white; border-color: #2563eb; }
+
+  /* Teclados */
+  .btn-kb-toggle {
+    background: #64748b; color: white; padding: 10px 14px;
+    border: none; border-radius: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .btn-kb-toggle:hover { background: #475569; transform: translateY(-1px); }
+  .keyboard-block {
+    background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 14px;
+    padding: 12px 14px; min-width: 280px;
+  }
+  .kb-title {
+    font-size: 13px; font-weight: 700; color: #475569;
+    margin-bottom: 8px; text-align: center;
+  }
+  .kb-row {
+    display: flex; gap: 5px; justify-content: center; margin-bottom: 5px; flex-wrap: wrap;
+  }
+  .kb-key {
+    width: 34px; height: 34px; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    background: #e2e8f0; color: #1e293b;
+    transition: all 0.15s; padding: 0;
+  }
+  .kb-key:hover { background: #cbd5e1; transform: translateY(-1px); }
+  .kb-key:active { transform: scale(0.95); }
+  .kb-key.op { background: #fef3c7; color: #92400e; }
+  .kb-key.op:hover { background: #fde68a; }
+  .kb-key.letter { background: #ede9fe; color: #5b21b6; width: 32px; height: 32px; font-size: 13px; }
+  .kb-key.letter:hover { background: #ddd6fe; }
+  .kb-key.del { background: #fecaca; color: #991b1b; }
+  .kb-key.del:hover { background: #fca5a5; }
+  .kb-key.clear { background: #fecaca; color: #991b1b; width: auto; padding: 0 12px; font-size: 13px; }
+  .kb-key.clear:hover { background: #fca5a5; }
+  .kb-key.wide { width: 48px; }
+
+  .current-eq {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    background: #f1f5f9;
+    border: 3px solid #cbd5e1;
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin-bottom: 16px;
+    transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
+    min-height: 52px;
+    width: fit-content;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .current-eq-wrap {
+    text-align: center;
+    margin-bottom: 4px;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .current-eq.updating {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    transform: scale(1.03);
+  }
+  .current-eq.solved {
+    background: #d1fae5;
+    border-color: #10b981;
+    color: #065f46;
+  }
+
+  .balance-area {
+    display: flex; justify-content: center; align-items: flex-end;
+    min-height: 300px; position: relative; margin: 10px 0 24px;
+    padding-bottom: 20px;
+  }
+  .scale-base { width: 60px; height: 18px; background: #475569; border-radius: 8px; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); }
+  .scale-pole { width: 12px; height: 110px; background: #64748b; position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); border-radius: 6px; }
+  .beam {
+    width: 580px; height: 14px; background: #334155;
+    position: absolute; bottom: 120px; left: 50%;
+    transform-origin: center;
+    transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 8px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  /* Zonas × y ÷ en el centro de la balanza */
+  .op-zones {
+    position: absolute;
+    left: 50%;
+    bottom: 138px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 20;
+  }
+  .op-zone {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    border: 3px dashed #94a3b8;
+    background: #f1f5f9;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 800;
+    color: #64748b;
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .op-zone.mul { border-color: #ec4899; color: #db2777; }
+  .op-zone.div { border-color: #f59e0b; color: #d97706; }
+  .op-zone.drag-over {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.35);
+    background: #ede9fe;
+  }
+  .op-zone.div.drag-over {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35);
+    background: #fef3c7;
+  }
+  .op-zone-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 195px;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #94a3b8;
+    white-space: nowrap;
+    z-index: 20;
+  }
+  .token.op-flash {
+    animation: opFlash 0.55s ease;
+  }
+  @keyframes opFlash {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.35); filter: brightness(1.3); }
+    100% { transform: scale(1); }
+  }
+  .pan-factor {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 15px;
+    color: white;
+    white-space: nowrap;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    animation: factorPop 0.4s ease;
+  }
+  .pan-factor.mul { background: #ec4899; }
+  .pan-factor.div { background: #d97706; }
+  @keyframes factorPop {
+    from { transform: translateX(-50%) scale(0); opacity: 0; }
+    to   { transform: translateX(-50%) scale(1); opacity: 1; }
+  }
+  .factor-eq {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    min-height: 24px;
+    font-family: 'Courier New', monospace;
+  }
+  .factor-eq.mul-color { color: #7c3aed; }
+  .factor-eq.div-color { color: #d97706; }
+
+  /* Platillos adaptativos */
+  .pan {
+    min-width: 160px;
+    max-width: 260px;
+    width: auto;
+    min-height: 90px;
+    height: auto;
+    position: relative;
+    background: #e2e8f0;
+    border: 4px solid #94a3b8;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    gap: 6px;
+    padding: 10px;
+    position: relative;
+    transition: border-color 0.3s, background 0.3s, box-shadow 0.3s, min-height 0.3s;
+  }
+  .pan.drag-over { border-color: #3b82f6; background: #dbeafe; }
+  .pan.solution { border-color: #10b981; background: #d1fae5; box-shadow: 0 0 0 4px rgba(16,185,129,0.35); }
+  .pan::after {
+    content: '';
+    position: absolute;
+    bottom: -16px; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 16px;
+    background: #64748b;
+  }
+
+  .token {
+    min-width: 40px; height: 40px; border-radius: 50%;
+    padding: 0 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: white;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    cursor: grab; user-select: none;
+    transition: transform 0.15s, opacity 0.3s;
+    animation: popIn 0.35s ease;
+  }
+  .token.value-mode {
+    border-radius: 10px;
+    min-width: 48px;
+    font-size: 15px;
+  }
+  @keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .token:active { cursor: grabbing; }
+  .token:hover { transform: scale(1.12); }
+  .token.var { background: #7c3aed; }
+  .token.var-neg {
+    background: #5b21b6;
+    box-shadow: inset 0 0 0 2px #fca5a5, 0 3px 6px rgba(0,0,0,0.2);
+  }
+  .token.pos { background: #10b981; }
+  .token.neg { background: #ef4444; }
+  .token.dragging { opacity: 0.45; }
+  .token.drop-target {
+    outline: 3px solid #f59e0b;
+    outline-offset: 2px;
+    transform: scale(1.15);
+  }
+  .token.factor-mul {
+    background: #ec4899 !important;
+    border-radius: 10px !important;
+    min-width: 48px;
+  }
+  .token.factor-div {
+    background: #d97706 !important;
+    border-radius: 10px !important;
+    min-width: 48px;
+  }
+
+  .status { text-align: center; font-size: 17px; font-weight: 600; min-height: 30px; margin-bottom: 12px; }
+  .balanced { color: #10b981; }
+  .unbalanced { color: #dc2626; }
+  .solution-msg {
+    color: #065f46; background: #d1fae5;
+    display: inline-block; padding: 10px 20px; border-radius: 22px;
+    font-size: 19px; animation: pulse 1.1s ease-in-out infinite alternate;
+  }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+
+  .ops { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; margin-bottom: 14px; }
+  .ops input[type="number"] { width: 70px; padding: 8px; border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; font-size: 15px; }
+
+  .mode-bar {
+    display: flex; justify-content: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; align-items: center;
+  }
+  .mode-label { font-size: 14px; color: #475569; font-weight: 600; }
+
+  .legend { display: flex; justify-content: center; gap: 18px; margin-bottom: 14px; font-size: 13px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 16px; height: 16px; border-radius: 50%; }
+
+  .steps-panel {
+    background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px;
+    padding: 14px 16px;
+    max-height: calc(100vh - 140px);
+    height: calc(100vh - 140px);
+    overflow-y: auto;
+    position: sticky;
+    top: 12px;
+  }
+  .steps-panel h3 {
+    font-size: 1.25rem; /* un poco más pequeña que el título (~1.6rem) */
+    margin-bottom: 12px; color: #334155;
+    position: sticky; top: 0; background: #f8fafc; padding-bottom: 8px; z-index: 1;
+  }
+  .step { padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-size: 1.25rem; line-height: 1.45; }
+  .step:last-child { border-bottom: none; }
+  .step-op { color: #64748b; font-size: 1.1rem; }
+  .step-eq { font-weight: 600; color: #0f172a; font-family: 'Courier New', monospace; word-break: break-all; font-size: 1.25rem; }
+  .step-solution { background: #d1fae5; border-radius: 8px; padding: 10px 12px; margin-top: 4px; font-size: 1.25rem; }
+
+  .hint { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 10px; }
+
+  /* Teclados superpuestos */
+  /* Teclados superpuestos encima del panel de pasos */
+  .kb-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: rgba(255,255,255,0.98);
+    border: 2px solid #94a3b8;
+    border-radius: 12px;
+    padding: 12px 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+  }
+  .kb-overlay.visible {
+    display: block;
+  }
+  .kb-overlay .kb-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .kb-overlay .kb-close {
+    background: #e2e8f0; border: none; border-radius: 6px;
+    width: 26px; height: 26px; cursor: pointer; font-size: 14px;
+  }
+  .kb-overlay .kb-close:hover { background: #cbd5e1; }
+
+  /* Panel Cómo usar (superpuesto) */
+  .help-overlay {
+    display: none;
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    width: 340px;
+    max-width: 92vw;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    z-index: 1001;
+    background: #fff;
+    border: 2px solid #3b82f6;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+  }
+  .help-overlay.visible { display: block; }
+  .help-overlay h3 {
+    font-size: 1.15rem; color: #1e40af; margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .help-overlay h3 button {
+    background: #e2e8f0; border: none; border-radius: 8px;
+    width: 28px; height: 28px; cursor: pointer; font-size: 16px; line-height: 1;
+  }
+  .help-overlay h3 button:hover { background: #cbd5e1; }
+  .help-overlay ol { padding-left: 20px; font-size: 14px; line-height: 1.55; color: #334155; }
+  .help-overlay li { margin-bottom: 8px; }
+  .help-overlay strong { color: #0f172a; }
+  .btn-help {
+    background: #3b82f6; color: white; padding: 10px 14px;
+    border: none; border-radius: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-help:hover { background: #2563eb; transform: translateY(-1px); }
+  .btn-help .qmark {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(255,255,255,0.25); font-weight: 800; font-size: 14px;
+    line-height: 1;
+  }
+  .help-overlay h3 .qmark-title {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #3b82f6; color: white; font-weight: 800; font-size: 16px;
+    margin-right: 8px;
+  }
+  .btn-author {
+    background: #0f766e; color: white; padding: 10px 14px;
+    border: none; border-radius: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .btn-author:hover { background: #0d9488; transform: translateY(-1px); }
+  .author-overlay {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 460px;
+    max-width: 92vw;
+    z-index: 1002;
+    background: #fff;
+    border: 2px solid #0f766e;
+    border-radius: 18px;
+    padding: 28px 32px;
+    box-shadow: 0 16px 50px rgba(0,0,0,0.25);
+  }
+  .author-overlay.visible { display: block; }
+  .author-overlay h3 {
+    font-size: 1.5rem; color: #0f766e; margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .author-overlay h3 button {
+    background: #e2e8f0; border: none; border-radius: 8px;
+    width: 32px; height: 32px; cursor: pointer; font-size: 18px; line-height: 1;
+  }
+  .author-overlay h3 button:hover { background: #cbd5e1; }
+  .author-overlay p {
+    font-size: 17px; line-height: 1.6; color: #334155; margin-bottom: 12px;
+  }
+  .author-overlay .author-name {
+    font-size: 21px; font-weight: 700; color: #0f172a; margin-bottom: 14px;
+  }
+  .author-overlay .author-ai {
+    font-size: 16px; line-height: 1.55; color: #475569;
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid #e2e8f0;
+  }
+  .header-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px; margin-bottom: 6px; flex-wrap: wrap;
+  }
+  .header-row h1 { flex: 1; text-align: center; margin-bottom: 0; }
+  .header-actions {
+    display: flex; gap: 8px; flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-row">
+      <div style="width:90px"></div>
+      <h1>⚖️ Balanza Algebraica</h1>
+      <div class="header-actions">
+        <button class="btn-author" id="authorBtn" onclick="toggleAuthor()">Autor</button>
+      </div>
+    </div>
+    <p class="subtitle">Pasos a la izquierda · Ecuación adaptable · Teclados ocultables</p>
+
+    <!-- BARRA SUPERIOR centrada -->
+    <div class="top-bar">
+      <button class="btn-kb-toggle" id="kbNumBtn" onclick="toggleKb('num')">🔢 Números</button>
+      <button class="btn-kb-toggle" id="kbLetBtn" onclick="toggleKb('let')">🔤 Letras</button>
+      <input type="text" id="eqInput" placeholder="Ej: 2y + 3 = 11" value="2y + 3 = 11">
+      <button class="btn-load" onclick="loadEquation()">Cargar ecuación</button>
+      <button class="btn-reset" onclick="reset()">Reiniciar</button>
+      <button class="btn-help" id="helpBtn" onclick="toggleHelp()"><span class="qmark">?</span> Cómo usar</button>
+      <button class="btn-set" id="setNBtn" onclick="setNumberSet('N')" title="Números naturales (0, 1, 2, …)">ℕ</button>
+      <button class="btn-set active-Z" id="setZBtn" onclick="setNumberSet('Z')" title="Números enteros (…, −2, −1, 0, 1, 2, …)">ℤ</button>
+    </div>
+
+    <!-- Layout principal: pasos (izq) + trabajo (der) -->
+    <div class="main-layout">
+      <div class="steps-column">
+        <!-- Teclado números (superpuesto sobre pasos) -->
+        <div class="kb-overlay" id="kbNumPanel">
+          <div class="kb-title">🔢 Números y operaciones <button class="kb-close" onclick="toggleKb('num')">×</button></div>
+          <div class="kb-row">
+            <button class="kb-key" onclick="insertEq('7')">7</button>
+            <button class="kb-key" onclick="insertEq('8')">8</button>
+            <button class="kb-key" onclick="insertEq('9')">9</button>
+            <button class="kb-key op" onclick="insertEq('+')">+</button>
+            <button class="kb-key op" onclick="insertEq('-')">−</button>
+          </div>
+          <div class="kb-row">
+            <button class="kb-key" onclick="insertEq('4')">4</button>
+            <button class="kb-key" onclick="insertEq('5')">5</button>
+            <button class="kb-key" onclick="insertEq('6')">6</button>
+            <button class="kb-key op" onclick="insertEq('*')">×</button>
+            <button class="kb-key op" onclick="insertEq('/')">÷</button>
+          </div>
+          <div class="kb-row">
+            <button class="kb-key" onclick="insertEq('1')">1</button>
+            <button class="kb-key" onclick="insertEq('2')">2</button>
+            <button class="kb-key" onclick="insertEq('3')">3</button>
+            <button class="kb-key op" onclick="insertEq('=')">=</button>
+            <button class="kb-key del" onclick="deleteEq()">⌫</button>
+          </div>
+          <div class="kb-row">
+            <button class="kb-key" onclick="insertEq('0')">0</button>
+            <button class="kb-key wide" onclick="insertEq('(')">(</button>
+            <button class="kb-key wide" onclick="insertEq(')')">)</button>
+            <button class="kb-key clear" onclick="clearEq()">Borrar</button>
+          </div>
+        </div>
+
+        <!-- Teclado letras (superpuesto sobre pasos) -->
+        <div class="kb-overlay" id="kbLetPanel">
+          <div class="kb-title">🔤 Letras / variables <button class="kb-close" onclick="toggleKb('let')">×</button></div>
+          <div class="kb-row">
+            <button class="kb-key letter" onclick="insertEq('a')">a</button>
+            <button class="kb-key letter" onclick="insertEq('b')">b</button>
+            <button class="kb-key letter" onclick="insertEq('c')">c</button>
+            <button class="kb-key letter" onclick="insertEq('d')">d</button>
+            <button class="kb-key letter" onclick="insertEq('e')">e</button>
+            <button class="kb-key letter" onclick="insertEq('f')">f</button>
+            <button class="kb-key letter" onclick="insertEq('g')">g</button>
+          </div>
+          <div class="kb-row">
+            <button class="kb-key letter" onclick="insertEq('h')">h</button>
+            <button class="kb-key letter" onclick="insertEq('i')">i</button>
+            <button class="kb-key letter" onclick="insertEq('j')">j</button>
+            <button class="kb-key letter" onclick="insertEq('k')">k</button>
+            <button class="kb-key letter" onclick="insertEq('l')">l</button>
+            <button class="kb-key letter" onclick="insertEq('m')">m</button>
+            <button class="kb-key letter" onclick="insertEq('n')">n</button>
+          </div>
+          <div class="kb-row">
+            <button class="kb-key letter" onclick="insertEq('o')">o</button>
+            <button class="kb-key letter" onclick="insertEq('p')">p</button>
+            <button class="kb-key letter" onclick="insertEq('q')">q</button>
+            <button class="kb-key letter" onclick="insertEq('r')">r</button>
+            <button class="kb-key letter" onclick="insertEq('s')">s</button>
+            <button class="kb-key letter" onclick="insertEq('t')">t</button>
+            <button class="kb-key letter" onclick="insertEq('u')">u</button>
+          </div>
+          <div class="kb-row">
+            <button class="kb-key letter" onclick="insertEq('v')">v</button>
+            <button class="kb-key letter" onclick="insertEq('w')">w</button>
+            <button class="kb-key letter" onclick="insertEq('x')">x</button>
+            <button class="kb-key letter" onclick="insertEq('y')">y</button>
+            <button class="kb-key letter" onclick="insertEq('z')">z</button>
+            <button class="kb-key letter" onclick="insertEq('α')">α</button>
+            <button class="kb-key letter" onclick="insertEq('β')">β</button>
+          </div>
+          <div class="kb-row">
+            <button class="kb-key letter" onclick="insertEq('A')">A</button>
+            <button class="kb-key letter" onclick="insertEq('B')">B</button>
+            <button class="kb-key letter" onclick="insertEq('N')">N</button>
+            <button class="kb-key letter" onclick="insertEq('X')">X</button>
+            <button class="kb-key letter" onclick="insertEq('Y')">Y</button>
+            <button class="kb-key letter" onclick="insertEq('θ')">θ</button>
+            <button class="kb-key letter" onclick="insertEq('π')">π</button>
+          </div>
+        </div>
+
+        <div class="steps-panel">
+          <h3>📝 Pasos de la resolución</h3>
+          <div id="stepsLog"></div>
+        </div>
+      </div>
+
+      <div class="work-column">
+        <div class="current-eq-wrap">
+          <div class="current-eq" id="currentEq">2y + 3 = 11</div>
+        </div>
+        <div class="balance-area">
+          <div class="scale-pole"></div>
+          <div class="scale-base"></div>
+          <div class="beam" id="beam">
+            <div class="pan" id="leftPan" data-side="left"></div>
+            <div class="pan" id="rightPan" data-side="right"></div>
+          </div>
+        </div>
+
+        <div class="status" id="status">Observa si la balanza está equilibrada o no</div>
+
+        <div class="ops">
+          <span style="font-weight:600;color:#475569;">Operar en <u>ambos</u> lados:</span>
+          <input type="number" id="opValue" value="3" step="1">
+          <button class="btn-add" onclick="doOp('+')">+ Sumar</button>
+          <button class="btn-sub" onclick="doOp('-')">− Restar</button>
+          <button class="btn-mul" onclick="doOp('*')">× Multiplicar</button>
+          <button class="btn-div" onclick="doOp('/')">÷ Dividir</button>
+        </div>
+
+        <div class="mode-bar">
+          <span class="mode-label">Mostrar fichas como:</span>
+          <button class="btn-mode" id="modeBtn" onclick="toggleMode()">Modo: Unidades (1 + 1 + 1…)</button>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> Variable <span id="varLabel">y</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Número +</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Número −</div>
+          <div class="legend-item" style="color:#64748b;">Arrastra fichas · Platillos se adaptan</div>
+        </div>
+      </div><!-- work-column -->
+    </div><!-- main-layout -->
+
+    <p class="hint">Barra superior centrada · Pasos a la izquierda · Teclados, ayuda y autor superpuestos</p>
+  </div><!-- container -->
+
+  <!-- Panel Cómo usar (superpuesto) -->
+  <div class="help-overlay" id="helpPanel">
+    <h3>
+      <span style="display:flex;align-items:center;"><span class="qmark-title">?</span> Cómo usar</span>
+      <button onclick="toggleHelp()" title="Cerrar">×</button>
+    </h3>
+    <ol>
+      <li><strong>Escribir la ecuación:</strong> usa el campo superior, el teclado del ordenador o los botones <strong>Números</strong> y <strong>Letras</strong> (se abren sobre el panel de pasos, sin tapar el campo de la ecuación).</li>
+      <li><strong>Cargar ecuación:</strong> pulsa el botón para ver la ecuación en la balanza. <strong>Reiniciar</strong> vuelve al estado inicial.</li>
+      <li><strong>Sumar y restar</strong> (botones + / −): el número se añade a <em>ambos</em> lados. Solo números enteros.</li>
+      <li><strong>Multiplicar y dividir</strong> (botones × / ÷): se coloca una ficha <strong>×n</strong> (rosa) o <strong>÷n</strong> (naranja) en <em>cada</em> platillo. Luego <strong>arrastra</strong> esa ficha encima de un valor del mismo lado para aplicar la operación. Si al dividir algún término no es divisible exactamente, aparece un aviso y no se puede resolver.</li>
+      <li><strong>Conjunto numérico:</strong> el botón <strong>ℕ</strong> trabaja con números naturales (0, 1, 2, …). Puedes escribir restas en la ecuación (ej. <code>8−3=5</code>) si el total de cada lado queda ≥ 0; en la balanza se colocan las fichas tal como las escribiste (por ejemplo 8 y −3) para que puedas cancelarlas arrastrando. No se admiten totales negativos ni pasar términos al otro lado. El botón <strong>ℤ</strong> permite enteros (positivos y negativos).</li>
+      <li><strong>Sumar o cancelar en el mismo platillo:</strong> arrastra un número o una variable encima de otro del mismo tipo. En modo unidades, dos fichas <code>1</code> se juntan en un <code>2</code>; un positivo y un negativo se cancelan si suman cero.</li>
+      <li><strong>Mover entre platillos:</strong> arrastra una ficha de un lado al otro; cambia de signo (como pasar un término al otro lado de la igualdad).</li>
+      <li><strong>Modo de fichas:</strong> <em>Unidades</em> muestra muchos 1 (y letras sueltas); <em>Valores</em> muestra cada cantidad en su propio cuadrito (por ejemplo: 3, 5, 2x).</li>
+      <li><strong>Balanza:</strong> se inclina si un lado tiene más peso (cada ficha cuenta). Al encontrar la solución (variable sola igual a un número), se nivela y aparece el mensaje de solución.</li>
+      <li><strong>Pasos:</strong> a la izquierda se registran todas las operaciones. Si hay muchos, desplázate con la rueda del ratón (el panel no crece).</li>
+      <li><strong>Colores:</strong> morado = variable; verde = número positivo; rojo = número negativo; morado y naranja en fichas ×n y ÷n = factores pendientes.</li>
+      <li><strong>Autor:</strong> el botón <em>Autor</em> (arriba a la derecha) muestra los datos del autor y de la universidad; se puede ocultar de nuevo.</li>
+    </ol>
+  </div>
+
+  <!-- Panel Autor (superpuesto, esquina superior derecha) -->
+  <div class="author-overlay" id="authorPanel">
+    <h3>
+      Autor
+      <button onclick="toggleAuthor()" title="Cerrar">×</button>
+    </h3>
+    <p class="author-name">Daniel Alonso Mora Vargas</p>
+    <p><strong>Universidad de Costa Rica</strong><br>Sede Rodrigo Facio</p>
+    <p><strong>Carrera:</strong> Bachillerato y Licenciatura en Educación Matemática</p>
+    <p><strong>Propuesta de material didáctico</strong><br>VI EIFEM · 4 de noviembre de 2026</p>
+    <p class="author-ai">Desarrolló esta <strong>balanza algebraica digital</strong> con apoyo de esta inteligencia artificial (Grok, xAI).</p>
+  </div>
+
+<script>
+  let variable = 'y';
+  // Cada lado guarda listas de términos para mostrar cada cantidad en su cuadrito
+  // vars: coeficientes de la variable [2, -1, ...]
+  // nums: números sueltos [3, 5, -2, ...]
+  // ops: factores pendientes ×n o ÷n colocados en el platillo para resolver arrastrando
+  let left  = { vars: [], nums: [], ops: [] };
+  let right = { vars: [], nums: [], ops: [] };
+  let original = null;
+  let steps = [];
+  let unitMode = true;   // true = solo 1's ; false = valores completos
+  let numberSet = 'Z'; // 'N' = naturales (≥0) ; 'Z' = enteros
+
+  function setNumberSet(set) {
+    numberSet = set;
+    document.getElementById('setNBtn').classList.toggle('active-N', set === 'N');
+    document.getElementById('setNBtn').classList.toggle('active-Z', false);
+    document.getElementById('setZBtn').classList.toggle('active-Z', set === 'Z');
+    document.getElementById('setZBtn').classList.toggle('active-N', false);
+    // Si hay negativos y se pasa a ℕ, avisar
+    if (set === 'N') {
+      const hasNeg =
+        left.nums.some(n => n < 0) || right.nums.some(n => n < 0) ||
+        left.vars.some(c => c < 0) || right.vars.some(c => c < 0);
+      if (hasNeg) {
+        alert('Hay cantidades negativas en la balanza. En ℕ solo se permiten valores ≥ 0. Reinicia o carga una ecuación sin negativos.');
+      }
+    }
+  }
+
+  function sideHasNegative(side) {
+    return side.nums.some(n => n < 0) || side.vars.some(c => c < 0);
+  }
+
+  function wouldBeNegative(side, kind, delta) {
+    // Comprueba si tras una operación quedarían negativos (para ℕ)
+    if (numberSet !== 'N') return false;
+    if (kind === 'num') {
+      const total = sumNums(side) + delta;
+      return total < 0;
+    }
+    if (kind === 'var') {
+      const total = sumVars(side) + delta;
+      return total < 0;
+    }
+    return false;
+  }
+
+  function sumVars(side) { return side.vars.reduce((a, b) => a + b, 0); }
+  function sumNums(side) { return side.nums.reduce((a, b) => a + b, 0); }
+
+  function parseEquation(str) {
+    const clean = str.replace(/\s+/g, '');
+    const parts = clean.split('=');
+    if (parts.length !== 2) return null;
+
+    const letterMatch = clean.match(/[a-zA-Zαβθπ]/);
+    if (!letterMatch) {
+      alert('No se encontró variable (letra). Ejemplo: 2y + 3 = 11');
+      return null;
+    }
+    const varName = letterMatch[0];
+
+    function parseSide(side) {
+      const vars = [], nums = [];
+      const terms = side.match(/[+-]?[^+-]+/g) || [];
+      for (const t of terms) {
+        if (new RegExp(varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(t) ||
+            /[a-zA-Zαβθπ]/.test(t)) {
+          // término con variable
+          let c = t.replace(new RegExp(varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '');
+          // por si la variable detectada global no coincide en este término
+          c = c.replace(/[a-zA-Zαβθπ]/g, '');
+          if (c === '' || c === '+') c = '1';
+          if (c === '-') c = '-1';
+          const val = parseInt(c, 10);
+          if (isNaN(val)) { alert('Solo se admiten números enteros'); return null; }
+          vars.push(val);
+        } else {
+          const val = parseInt(t, 10);
+          if (isNaN(val)) { alert('Solo se admiten números enteros'); return null; }
+          nums.push(val);
+        }
+      }
+      return { vars, nums, ops: [] };
+    }
+
+    const L = parseSide(parts[0]);
+    const R = parseSide(parts[1]);
+    if (!L || !R) return null;
+    return { variable: varName, left: L, right: R };
+  }
+
+  function formatVarTerm(c) {
+    if (c === 1) return variable;
+    if (c === -1) return '-' + variable;
+    return c + variable;
+  }
+
+  function formatSide(side) {
+    const parts = [];
+    side.vars.forEach((c, i) => {
+      const t = formatVarTerm(c);
+      if (parts.length === 0) parts.push(t);
+      else parts.push((c > 0 ? ' + ' : ' - ') + (Math.abs(c) === 1 ? variable : Math.abs(c) + variable));
+    });
+    side.nums.forEach((n) => {
+      if (parts.length === 0) parts.push(String(n));
+      else parts.push((n > 0 ? ' + ' : ' - ') + Math.abs(n));
+    });
+    if (parts.length === 0) return '0';
+    return parts.join('');
+  }
+
+  function formatEq() {
+    return formatSide(left) + ' = ' + formatSide(right);
+  }
+
+  function isSolved() {
+    const lc = sumVars(left), ln = sumNums(left);
+    const rc = sumVars(right), rn = sumNums(right);
+    if (lc === 1 && ln === 0 && rc === 0)
+      return { side: 'right', value: rn };
+    if (rc === 1 && rn === 0 && lc === 0)
+      return { side: 'left', value: ln };
+    if (lc === -1 && ln === 0 && rc === 0)
+      return { side: 'right', value: -rn };
+    if (rc === -1 && rn === 0 && lc === 0)
+      return { side: 'left', value: -ln };
+    return null;
+  }
+
+  function sideWeight(side) {
+    return sumVars(side) + sumNums(side);
+  }
+
+  function explodeToUnits(side) {
+    const nums = [];
+    side.nums.forEach(n => {
+      const s = Math.sign(n) || 1;
+      for (let i = 0; i < Math.abs(n); i++) nums.push(s);
+    });
+    side.nums = nums;
+    const vars = [];
+    side.vars.forEach(c => {
+      const s = Math.sign(c) || 1;
+      for (let i = 0; i < Math.abs(c); i++) vars.push(s);
+    });
+    side.vars = vars;
+  }
+
+  function consolidateSide(side) {
+    const ns = sumNums(side);
+    const vs = sumVars(side);
+    side.nums = ns !== 0 ? [ns] : [];
+    side.vars = vs !== 0 ? [vs] : [];
+  }
+
+  function toggleMode() {
+    unitMode = !unitMode;
+    const btn = document.getElementById('modeBtn');
+    btn.textContent = unitMode
+      ? 'Modo: Unidades (1 + 1 + 1…)'
+      : 'Modo: Valores (3, 5, −2…)';
+    if (unitMode) {
+      explodeToUnits(left);
+      explodeToUnits(right);
+    } else {
+      consolidateSide(left);
+      consolidateSide(right);
+    }
+    render();
+  }
+
+  // --- Mostrar / ocultar teclados ---
+  function toggleKb(which) {
+    const num = document.getElementById('kbNumPanel');
+    const letp = document.getElementById('kbLetPanel');
+    if (which === 'num') {
+      const open = num.classList.toggle('visible');
+      letp.classList.remove('visible');
+      document.getElementById('kbNumBtn').textContent = open ? '🔽 Números' : '🔢 Números';
+      document.getElementById('kbLetBtn').textContent = '🔤 Letras';
+    } else {
+      const open = letp.classList.toggle('visible');
+      num.classList.remove('visible');
+      document.getElementById('kbLetBtn').textContent = open ? '🔽 Letras' : '🔤 Letras';
+      document.getElementById('kbNumBtn').textContent = '🔢 Números';
+    }
+  }
+
+  function toggleHelp() {
+    document.getElementById('helpPanel').classList.toggle('visible');
+  }
+
+  function toggleAuthor() {
+    document.getElementById('authorPanel').classList.toggle('visible');
+  }
+
+  // --- Teclados: insertar en el campo de ecuación ---
+  function insertEq(char) {
+    const input = document.getElementById('eqInput');
+    // Mapear símbolos visuales a caracteres que el parser entiende
+    const map = { '−': '-', '×': '*', '÷': '/' };
+    const toInsert = map[char] || char;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const val = input.value;
+    input.value = val.slice(0, start) + toInsert + val.slice(end);
+    input.focus();
+    const newPos = start + toInsert.length;
+    input.setSelectionRange(newPos, newPos);
+  }
+
+  function deleteEq() {
+    const input = document.getElementById('eqInput');
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    if (start === end && start > 0) {
+      input.value = input.value.slice(0, start - 1) + input.value.slice(end);
+      input.focus();
+      input.setSelectionRange(start - 1, start - 1);
+    } else if (start !== end) {
+      input.value = input.value.slice(0, start) + input.value.slice(end);
+      input.focus();
+      input.setSelectionRange(start, start);
+    } else {
+      input.focus();
+    }
+  }
+
+  function clearEq() {
+    const input = document.getElementById('eqInput');
+    input.value = '';
+    input.focus();
+  }
+
+  function cloneSide(s) {
+    return {
+      vars: [...s.vars],
+      nums: [...s.nums],
+      ops: (s.ops || []).map(o => ({ ...o }))
+    };
+  }
+
+  function loadEquation() {
+    const parsed = parseEquation(document.getElementById('eqInput').value);
+    if (!parsed) return;
+    variable = parsed.variable;
+    left  = cloneSide(parsed.left);
+    right = cloneSide(parsed.right);
+    if (numberSet === 'N') {
+      // Permitir restas en la ecuación (ej. 8−3) si el total de cada lado queda ≥ 0.
+      // Los términos se colocan en la balanza como se escribieron (8 y −3)
+      // para cancelarlos arrastrando; solo se rechaza si el total es negativo.
+      const ln = sumNums(left), lv = sumVars(left);
+      const rn = sumNums(right), rv = sumVars(right);
+      if (ln < 0 || lv < 0 || rn < 0 || rv < 0) {
+        alert('En ℕ las restas deben quedar en naturales: el total de cada lado no puede ser negativo.');
+        return;
+      }
+      // No consolidar: 8 − 3 se ve en la balanza como fichas 8 y −3
+    }
+    if (unitMode) {
+      explodeToUnits(left);
+      explodeToUnits(right);
+    }
+    original = { variable, left: cloneSide(left), right: cloneSide(right) };
+    steps = [{ op: 'Ecuación inicial', eq: formatEq() }];
+    document.getElementById('varLabel').textContent = variable;
+    updateEquationDisplay(false);
+    render();
+    renderSteps();
+  }
+
+  function reset() {
+    if (!original) return;
+    variable = original.variable;
+    left  = cloneSide(original.left);
+    right = cloneSide(original.right);
+    if (unitMode) {
+      explodeToUnits(left);
+      explodeToUnits(right);
+    }
+    steps = [{ op: 'Ecuación inicial', eq: formatEq() }];
+    document.getElementById('varLabel').textContent = variable;
+    updateEquationDisplay(false);
+    render();
+    renderSteps();
+  }
+
+  function fitEquationFont(el) {
+    const wrap = el.parentElement;
+    if (!wrap) return;
+    // Tamaño máximo y mínimo en px
+    const maxPx = 32;
+    const minPx = 11;
+    el.style.fontSize = maxPx + 'px';
+    // Ancho disponible del contenedor de trabajo
+    const available = Math.max(120, (wrap.clientWidth || wrap.offsetWidth) - 8);
+    // Reducir hasta que quepa en una sola línea
+    let size = maxPx;
+    while (size > minPx && el.scrollWidth > available) {
+      size -= 1;
+      el.style.fontSize = size + 'px';
+    }
+  }
+
+  function updateEquationDisplay(animate = true) {
+    const el = document.getElementById('currentEq');
+    const eq = formatEq();
+    const solved = isSolved();
+
+    const apply = () => {
+      el.textContent = eq;
+      if (solved) el.classList.add('solved');
+      else el.classList.remove('solved');
+      fitEquationFont(el);
+    };
+
+    if (animate) {
+      el.classList.add('updating');
+      setTimeout(() => {
+        el.classList.remove('updating');
+        apply();
+      }, 180);
+    } else {
+      apply();
+    }
+  }
+
+  // Reajustar si cambia el tamaño de la ventana
+  window.addEventListener('resize', () => {
+    const el = document.getElementById('currentEq');
+    if (el) fitEquationFont(el);
+  });
+
+  function doOp(op) {
+    const raw = document.getElementById('opValue').value;
+    const v = parseInt(raw, 10);
+    if (isNaN(v)) {
+      alert(numberSet === 'N' ? 'Escribe un número natural (0, 1, 2, …)' : 'Escribe un número entero');
+      return;
+    }
+    if (numberSet === 'N' && v < 0) {
+      alert('En ℕ (números naturales) no se admiten números negativos.');
+      return;
+    }
+
+    let desc = '';
+    if (op === '+') {
+      if (numberSet === 'N' && v < 0) {
+        alert('En ℕ no se puede sumar un valor negativo.');
+        return;
+      }
+      // Unidades: v fichas de 1; Valores: una ficha con el número v
+      if (unitMode) {
+        const s = v >= 0 ? 1 : -1;
+        for (let i = 0; i < Math.abs(v); i++) {
+          left.nums.push(s);
+          right.nums.push(s);
+        }
+      } else {
+        left.nums.push(v);
+        right.nums.push(v);
+      }
+      desc = `Sumar ${v} a ambos lados`;
+    } else if (op === '-') {
+      if (numberSet === 'N') {
+        // En ℕ solo restar si ambos lados quedan ≥ 0
+        if (sumNums(left) - v < 0 || sumNums(right) - v < 0) {
+          alert('En ℕ no se puede restar: el resultado sería negativo en algún lado.');
+          return;
+        }
+        // Restar quitando unidades positivas (no añadir −1)
+        if (unitMode) {
+          for (let i = 0; i < v; i++) {
+            // Quitar un +1 de cada lado
+            const il = left.nums.findIndex(n => n > 0);
+            const ir = right.nums.findIndex(n => n > 0);
+            if (il < 0 || ir < 0) {
+              alert('En ℕ no hay suficientes unidades positivas para restar.');
+              return;
+            }
+            left.nums[il] -= 1;
+            if (left.nums[il] === 0) left.nums.splice(il, 1);
+            right.nums[ir] -= 1;
+            if (right.nums[ir] === 0) right.nums.splice(ir, 1);
+          }
+        } else {
+          left.nums = [sumNums(left) - v].filter(x => x !== 0);
+          right.nums = [sumNums(right) - v].filter(x => x !== 0);
+        }
+        desc = `Restar ${v} a ambos lados (en ℕ)`;
+      } else {
+        // ℤ: Unidades: v fichas de −1; Valores: una ficha con −v
+        if (unitMode) {
+          for (let i = 0; i < Math.abs(v); i++) {
+            left.nums.push(-1);
+            right.nums.push(-1);
+          }
+        } else {
+          left.nums.push(-v);
+          right.nums.push(-v);
+        }
+        desc = `Restar ${v} a ambos lados`;
+      }
+    } else if (op === '*') {
+      // Colocar ×v en AMBOS platillos; se resuelve arrastrando sobre un valor
+      left.ops.push({ op: '*', n: v });
+      right.ops.push({ op: '*', n: v });
+      desc = `Colocar ×${v} en ambos lados (arrastra sobre un valor para aplicar)`;
+    } else if (op === '/') {
+      if (v === 0) {
+        alert('No se puede dividir entre cero');
+        return;
+      }
+      // Validar con los totales de cada lado (sirve también en modo unidades)
+      const lv = sumVars(left), ln = sumNums(left);
+      const rv = sumVars(right), rn = sumNums(right);
+      if (lv === 0 && ln === 0 && rv === 0 && rn === 0) {
+        alert('No hay valores que dividir.');
+        return;
+      }
+      if (lv % v !== 0 || ln % v !== 0 || rv % v !== 0 || rn % v !== 0) {
+        alert('No se puede resolver: el total de algún lado no es divisible exactamente entre ' + v + ' (solo enteros).');
+        return;
+      }
+      left.ops.push({ op: '/', n: v });
+      right.ops.push({ op: '/', n: v });
+      desc = `Colocar ÷${v} en ambos lados (arrastra sobre un valor para aplicar)`;
+    }
+
+    left.vars = left.vars.filter(c => c !== 0);
+    left.nums = left.nums.filter(n => n !== 0);
+    right.vars = right.vars.filter(c => c !== 0);
+    right.nums = right.nums.filter(n => n !== 0);
+
+    steps.push({ op: desc, eq: formatEq() });
+    updateEquationDisplay(true);
+    render();
+    renderSteps();
+  }
+
+  function render() {
+    const leftPan  = document.getElementById('leftPan');
+    const rightPan = document.getElementById('rightPan');
+    leftPan.innerHTML  = '';
+    rightPan.innerHTML = '';
+    leftPan.classList.remove('solution');
+    rightPan.classList.remove('solution');
+
+    createTokens(leftPan,  left,  'left');
+    createTokens(rightPan, right, 'right');
+
+    // Inclinación
+    const solved = isSolved();
+    const leftW  = sideWeight(left);
+    const rightW = sideWeight(right);
+    const diff = leftW - rightW;
+
+    let angle = 0;
+    if (!solved) {
+      angle = Math.max(-22, Math.min(22, -diff * 2.2));
+    }
+    document.getElementById('beam').style.transform = `translateX(-50%) rotate(${angle}deg)`;
+
+    const status = document.getElementById('status');
+
+    if (solved) {
+      if (solved.side === 'left') leftPan.classList.add('solution');
+      else rightPan.classList.add('solution');
+      status.innerHTML = `<span class="solution-msg">🎯 ¡Solución encontrada! ${variable} = ${solved.value}</span>`;
+      if (!steps.some(s => s.solution)) {
+        steps.push({ op: '¡Variable aislada!', eq: formatEq(), solution: true, value: solved.value });
+        renderSteps();
+      }
+    } else if (Math.abs(diff) < 0.01) {
+      status.textContent = '¡La balanza está equilibrada! (misma cantidad de peso en ambos lados)';
+      status.className = 'status balanced';
+    } else {
+      const heavier = diff > 0 ? 'izquierdo' : 'derecho';
+      status.textContent = `La balanza está desequilibrada → más peso en el lado ${heavier}`;
+      status.className = 'status unbalanced';
+    }
+  }
+
+  let tokenUid = 0;
+  function createTokens(pan, side, sideName) {
+    // --- Variables ---
+    side.vars.forEach((c, idx) => {
+      if (c === 0) return;
+      if (unitMode && Math.abs(c) === 1) {
+        const el = document.createElement('div');
+        el.className = 'token var' + (c < 0 ? ' var-neg' : '');
+        el.textContent = c < 0 ? ('-' + variable) : variable;
+        el.draggable = true;
+        el.dataset.side = sideName; el.dataset.kind = 'var';
+        el.dataset.val = c; el.dataset.idx = idx; el.dataset.uid = String(++tokenUid);
+        attachDrag(el); pan.appendChild(el);
+      } else if (unitMode) {
+        // Ficha apilada (resultado de sumar unidades), ej. 2x
+        const el = document.createElement('div');
+        el.className = 'token var value-mode' + (c < 0 ? ' var-neg' : '');
+        el.textContent = formatVarTerm(c);
+        el.draggable = true;
+        el.dataset.side = sideName; el.dataset.kind = 'var';
+        el.dataset.val = c; el.dataset.idx = idx; el.dataset.uid = String(++tokenUid);
+        attachDrag(el); pan.appendChild(el);
+      } else {
+        const el = document.createElement('div');
+        el.className = 'token var value-mode';
+        el.textContent = formatVarTerm(c);
+        el.draggable = true;
+        el.dataset.side = sideName; el.dataset.kind = 'var';
+        el.dataset.val = c; el.dataset.idx = idx; el.dataset.uid = String(++tokenUid);
+        attachDrag(el); pan.appendChild(el);
+      }
+    });
+
+    // --- Números ---
+    side.nums.forEach((n, idx) => {
+      if (n === 0) return;
+      if (unitMode && Math.abs(n) === 1) {
+        const el = document.createElement('div');
+        el.className = 'token ' + (n > 0 ? 'pos' : 'neg');
+        el.textContent = n > 0 ? '1' : '-1';
+        el.draggable = true;
+        el.dataset.side = sideName; el.dataset.kind = 'num';
+        el.dataset.val = n; el.dataset.idx = idx; el.dataset.uid = String(++tokenUid);
+        attachDrag(el); pan.appendChild(el);
+      } else if (unitMode) {
+        // Ficha apilada (suma de unidades), ej. 2, 3…
+        const el = document.createElement('div');
+        el.className = 'token value-mode ' + (n > 0 ? 'pos' : 'neg');
+        el.textContent = String(n);
+        el.draggable = true;
+        el.dataset.side = sideName; el.dataset.kind = 'num';
+        el.dataset.val = n; el.dataset.idx = idx; el.dataset.uid = String(++tokenUid);
+        attachDrag(el); pan.appendChild(el);
+      } else {
+        const el = document.createElement('div');
+        el.className = 'token value-mode ' + (n > 0 ? 'pos' : 'neg');
+        el.textContent = String(n);
+        el.draggable = true;
+        el.dataset.side = sideName; el.dataset.kind = 'num';
+        el.dataset.val = n; el.dataset.idx = idx; el.dataset.uid = String(++tokenUid);
+        attachDrag(el); pan.appendChild(el);
+      }
+    });
+
+    // --- Factores ×n / ÷n pendientes (se resuelven arrastrando sobre un valor) ---
+    (side.ops || []).forEach((o, idx) => {
+      const el = document.createElement('div');
+      el.className = 'token value-mode factor-token ' + (o.op === '*' ? 'factor-mul' : 'factor-div');
+      el.textContent = (o.op === '*' ? '×' : '÷') + o.n;
+      el.draggable = true;
+      el.dataset.side = sideName;
+      el.dataset.kind = 'factor';
+      el.dataset.op = o.op;
+      el.dataset.val = o.n;
+      el.dataset.idx = idx;
+      el.dataset.uid = String(++tokenUid);
+      attachDrag(el);
+      pan.appendChild(el);
+    });
+  }
+
+  function attachDrag(el) {
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        side: el.dataset.side,
+        kind: el.dataset.kind,
+        val:  parseInt(el.dataset.val, 10),
+        op:   el.dataset.op || '',
+        uid:  el.dataset.uid
+      }));
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      document.querySelectorAll('.token.drop-target').forEach(t => t.classList.remove('drop-target'));
+    });
+
+    el.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Se puede soltar un factor sobre num/var, o un num sobre otro num
+      el.classList.add('drop-target');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drop-target'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.remove('drop-target');
+      let data;
+      try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
+      if (data.side !== el.dataset.side) return;
+      if (data.uid && data.uid === el.dataset.uid) return;
+
+      // Factor ×/÷ arrastrado encima de un valor (número o variable) del mismo lado
+      if (data.kind === 'factor' && (el.dataset.kind === 'num' || el.dataset.kind === 'var')) {
+        applyFactorToSide(data.side, data.op, data.val);
+        return;
+      }
+      // También permitir arrastrar el valor encima del factor
+      if (el.dataset.kind === 'factor' && (data.kind === 'num' || data.kind === 'var')) {
+        applyFactorToSide(el.dataset.side, el.dataset.op, parseInt(el.dataset.val, 10));
+        return;
+      }
+
+      // Números verde/rojo: sumar / cancelar (también en modo unidades)
+      if (data.kind === 'num' && el.dataset.kind === 'num') {
+        combineTerms(data.side, 'num', data.val, parseInt(el.dataset.val, 10));
+        return;
+      }
+      // Variables positivas/negativas: sumar / cancelar (también en modo unidades)
+      if (data.kind === 'var' && el.dataset.kind === 'var') {
+        combineTerms(data.side, 'var', data.val, parseInt(el.dataset.val, 10));
+      }
+    });
+  }
+
+  // Suma dos términos del mismo tipo en el mismo lado (números o variables).
+  // En modo unidades val suele ser +1 o −1; en modo valores puede ser cualquier entero.
+  function combineTerms(sideName, kind, valA, valB) {
+    const side = sideName === 'left' ? left : right;
+    const arr = kind === 'var' ? side.vars : side.nums;
+
+    function removeOne(val) {
+      // Coincidencia exacta (unidad o ficha apilada)
+      let i = arr.findIndex(n => n === val);
+      if (i >= 0) {
+        arr.splice(i, 1);
+        return true;
+      }
+      if (unitMode && Math.abs(val) === 1) {
+        // Quitar una unidad de un término del mismo signo
+        i = arr.findIndex(n => Math.sign(n) === Math.sign(val) && n !== 0);
+        if (i < 0) return false;
+        arr[i] -= val;
+        if (arr[i] === 0) arr.splice(i, 1);
+        return true;
+      }
+      return false;
+    }
+
+    if (!removeOne(valA)) return;
+    if (!removeOne(valB)) {
+      arr.push(valA); // revertir
+      return;
+    }
+
+    const result = valA + valB;
+    if (numberSet === 'N' && result < 0) {
+      // Revertir: volver a poner valA y valB
+      arr.push(valA);
+      arr.push(valB);
+      alert('En ℕ (números naturales) el resultado no puede ser negativo.');
+      return;
+    }
+    let labelA = kind === 'var' ? formatVarTerm(valA) : String(valA);
+    let labelB = kind === 'var' ? formatVarTerm(valB) : String(valB);
+    let desc;
+    if (result === 0) {
+      desc = `Cancelar ${labelA} y ${labelB} en el lado ${sideName === 'left' ? 'izquierdo' : 'derecho'}`;
+    } else {
+      arr.push(result);
+      const labelR = kind === 'var' ? formatVarTerm(result) : String(result);
+      desc = `Combinar ${labelA} y ${labelB} → ${labelR} (lado ${sideName === 'left' ? 'izquierdo' : 'derecho'})`;
+    }
+
+    steps.push({ op: desc, eq: formatEq() });
+    updateEquationDisplay(true);
+    render();
+    renderSteps();
+  }
+
+  // Aplica ×n o ÷n a TODOS los términos de un lado y quita un factor pendiente
+  function applyFactorToSide(sideName, op, n) {
+    const side = sideName === 'left' ? left : right;
+    n = parseInt(n, 10);
+    if (!n) return;
+
+    // Trabajar con totales (compatible con modo unidades y valores)
+    let vs = sumVars(side);
+    let ns = sumNums(side);
+
+    if (op === '/') {
+      if (vs % n !== 0 || ns % n !== 0) {
+        alert('No se puede resolver en el lado ' + (sideName === 'left' ? 'izquierdo' : 'derecho') +
+              ': el total no es divisible exactamente entre ' + n + '.');
+        return;
+      }
+      vs = vs / n;
+      ns = ns / n;
+    } else if (op === '*') {
+      vs = vs * n;
+      ns = ns * n;
+    } else return;
+
+    side.vars = vs !== 0 ? [vs] : [];
+    side.nums = ns !== 0 ? [ns] : [];
+    // En modo unidades, volver a mostrar como fichas de 1 / letras sueltas
+    if (unitMode) explodeToUnits(side);
+
+    // Quitar un factor pendiente de ese tipo
+    const i = side.ops.findIndex(o => o.op === op && o.n === n);
+    if (i >= 0) side.ops.splice(i, 1);
+
+    const sym = op === '*' ? '×' : '÷';
+    steps.push({
+      op: `Aplicar ${sym}${n} en el lado ${sideName === 'left' ? 'izquierdo' : 'derecho'}`,
+      eq: formatEq()
+    });
+    updateEquationDisplay(true);
+    render();
+    renderSteps();
+  }
+
+  ['leftPan', 'rightPan'].forEach(id => {
+    const pan = document.getElementById(id);
+    pan.addEventListener('dragover', e => {
+      e.preventDefault();
+      pan.classList.add('drag-over');
+    });
+    pan.addEventListener('dragleave', () => pan.classList.remove('drag-over'));
+    pan.addEventListener('drop', e => {
+      e.preventDefault();
+      pan.classList.remove('drag-over');
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      if (data.side === pan.dataset.side) return;
+      moveToken(data.side, pan.dataset.side, data.kind, data.val);
+    });
+  });
+
+  function moveToken(fromSide, toSide, kind, val) {
+    if (kind === 'factor') return; // los factores se resuelven en el mismo platillo
+
+    // En ℕ, pasar al otro lado cambia el signo → generaría negativos
+    if (numberSet === 'N' && val > 0) {
+      alert('En ℕ (números naturales) no se puede pasar un término al otro lado, porque cambiaría de signo.');
+      return;
+    }
+    if (numberSet === 'N' && val < 0) {
+      alert('En ℕ no se trabajan cantidades negativas.');
+      return;
+    }
+
+    const from = fromSide === 'left' ? left : right;
+    const to   = toSide   === 'left' ? left : right;
+
+    if (kind === 'var') {
+      // Quitar un término con ese valor (o reducir en modo unidades)
+      const i = from.vars.findIndex(c => c === val || (unitMode && Math.sign(c) === Math.sign(val) && c !== 0));
+      if (i >= 0) {
+        if (unitMode && Math.abs(from.vars[i]) > 1) {
+          from.vars[i] -= val;
+          if (from.vars[i] === 0) from.vars.splice(i, 1);
+        } else {
+          from.vars.splice(i, 1);
+        }
+      }
+      to.vars.push(-val);
+      to.vars = to.vars.filter(c => c !== 0);
+    } else {
+      const i = from.nums.findIndex(n => n === val || (unitMode && Math.sign(n) === Math.sign(val) && n !== 0));
+      if (i >= 0) {
+        if (unitMode && Math.abs(from.nums[i]) > 1) {
+          from.nums[i] -= val;
+          if (from.nums[i] === 0) from.nums.splice(i, 1);
+        } else {
+          from.nums.splice(i, 1);
+        }
+      }
+      to.nums.push(-val);
+      to.nums = to.nums.filter(n => n !== 0);
+    }
+
+    const signText = (kind === 'var' && Math.abs(val) === 1)
+      ? (val > 0 ? variable : '-' + variable)
+      : (kind === 'var' ? formatVarTerm(val) : String(val));
+    steps.push({
+      op: `Mover ${signText} del lado ${fromSide === 'left' ? 'izquierdo' : 'derecho'} al ${toSide === 'left' ? 'izquierdo' : 'derecho'} (cambio de signo)`,
+      eq: formatEq()
+    });
+    updateEquationDisplay(true);
+    render();
+    renderSteps();
+  }
+
+  function renderSteps() {
+    const log = document.getElementById('stepsLog');
+    log.innerHTML = steps.map((s, i) => {
+      if (s.solution) {
+        return `<div class="step step-solution">
+          <div class="step-op">🎯 ${s.op}</div>
+          <div class="step-eq">${variable} = ${s.value}</div>
+        </div>`;
+      }
+      return `<div class="step">
+        <div class="step-op">${i === 0 ? s.op : 'Paso ' + i + ': ' + s.op}</div>
+        <div class="step-eq">${s.eq}</div>
+      </div>`;
+    }).join('');
+    log.scrollTop = log.scrollHeight;
+  }
+
+  loadEquation();
+</script>
+</body>
+</html>
